@@ -1,0 +1,11 @@
+rootProject.name = 'Backend'
+
+include 'api-client', 'api-partner', 'api-admin', 'api-owner'
+
+include 'domain-core'
+include 'domain-reservation'
+include 'domain-tracking'
+include 'domain-recommendation'
+include 'domain-education'
+include 'domain-payment'
+include 'domain-exhibition'
