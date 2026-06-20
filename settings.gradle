@@ -1,6 +1,6 @@
 rootProject.name = 'Backend'
 
-include 'api-client', 'api-partner', 'api-admin', 'api-owner'
+include 'api-visitor', 'api-exhibitor', 'api-platform-admin', 'api-expo-admin'
 
 include 'domain-core'
 include 'domain-reservation'
