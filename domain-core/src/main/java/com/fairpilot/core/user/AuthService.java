@@ -1,12 +1,15 @@
 package com.fairpilot.core.user;
 
 import com.fairpilot.core.auth.JwtProvider;
+import com.fairpilot.core.auth.RefreshTokenService;
 import com.fairpilot.core.common.BusinessException;
 import com.fairpilot.core.common.ErrorCode;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.util.Map;
 
 @Service
 @RequiredArgsConstructor
@@ -15,6 +18,7 @@ public class AuthService {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtProvider jwtProvider;
+    private final RefreshTokenService refreshTokenService;
 
     /** 회원가입 (VISITOR만 가능) */
     @Transactional
@@ -32,16 +36,39 @@ public class AuthService {
         userRepository.save(user);
     }
 
-    /** 로그인 → JWT 반환 */
+    /** 로그인 → AccessToken + RefreshToken 반환 */
     @Transactional(readOnly = true)
-    public String login(String email, String password) {
+    public Map<String, String> login(String email, String password) {
         User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new BusinessException(ErrorCode.UNAUTHORIZED, "이메일 또는 비밀번호가 올바르지 않습니다."));
+                .orElseThrow(() -> new BusinessException(ErrorCode.UNAUTHORIZED,
+                        "이메일 또는 비밀번호가 올바르지 않습니다."));
 
         if (!passwordEncoder.matches(password, user.getPasswordHash())) {
-            throw new BusinessException(ErrorCode.UNAUTHORIZED, "이메일 또는 비밀번호가 올바르지 않습니다.");
+            throw new BusinessException(ErrorCode.UNAUTHORIZED,
+                    "이메일 또는 비밀번호가 올바르지 않습니다.");
         }
 
-        return jwtProvider.generate(user.getId(), user.getRole().name());
+        String accessToken = jwtProvider.generate(user.getId(), user.getRole().name());
+        String refreshToken = refreshTokenService.issue(user.getId());
+
+        return Map.of(
+                "accessToken", accessToken,
+                "refreshToken", refreshToken
+        );
+    }
+
+    /** Access Token 재발급 */
+    public Map<String, String> refresh(String refreshToken) {
+        Long userId = refreshTokenService.validate(refreshToken);
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND, "사용자 없음"));
+
+        String newAccessToken = jwtProvider.generate(user.getId(), user.getRole().name());
+        return Map.of("accessToken", newAccessToken);
+    }
+
+    /** 로그아웃 */
+    public void logout(String refreshToken) {
+        refreshTokenService.revoke(refreshToken);
     }
 }

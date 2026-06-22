@@ -24,10 +24,22 @@ public class AuthController {
         return ApiResponse.ok(null);
     }
 
-    /** 로그인 → JWT 반환 */
+    /** 로그인 → AccessToken + RefreshToken 반환 */
     @PostMapping("/login")
     public ApiResponse<Map<String, String>> login(@Valid @RequestBody LoginRequest req) {
-        String token = authService.login(req.email(), req.password());
-        return ApiResponse.ok(Map.of("token", token));
+        return ApiResponse.ok(authService.login(req.email(), req.password()));
+    }
+
+    /** Access Token 재발급 */
+    @PostMapping("/refresh")
+    public ApiResponse<Map<String, String>> refresh(@RequestParam String refreshToken) {
+        return ApiResponse.ok(authService.refresh(refreshToken));
+    }
+
+    /** 로그아웃 */
+    @PostMapping("/logout")
+    public ApiResponse<Void> logout(@RequestParam String refreshToken) {
+        authService.logout(refreshToken);
+        return ApiResponse.ok(null);
     }
 }
