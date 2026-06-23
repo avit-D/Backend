@@ -63,4 +63,8 @@ public class Exhibition extends BaseEntity {
         this.address = address;
         this.startDate = startDate;
         this.endDate = endDate;
-        this.status
+        this.status = ExhibitionStatus.DRAFT;
+        this.enforceStaffQualification = false;
+        this.createdBy = createdBy;
+    }
+}
