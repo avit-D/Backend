@@ -88,4 +88,11 @@ public class ReservationAttendee {
         this.checkinStatus = CheckinStatus.CHECKED_IN;
         this.checkedInAt = LocalDateTime.now();
     }
+
+    /** 참석자 정보 수정 — null 필드는 기존 값 유지. */
+    public void update(String name, String phone, String email) {
+        if (name  != null) this.name  = name;
+        if (phone != null) this.phone = phone;
+        if (email != null) this.email = email;
+    }
 }

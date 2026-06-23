@@ -31,7 +31,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionTemplate;
 
-import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.util.concurrent.TimeUnit;
@@ -171,7 +170,6 @@ public class ScanProcessingService {
         broadcast(counterService.applyDelta(exhId, prev.scanPointType(), prev.scanPointId(), -prev.headCount()));
         openStateService.remove(exhId, attendeeId);
     }
-
 
     /** 관리자 수동 종료(/visits/open/{dwellId}/close). */
     @Transactional

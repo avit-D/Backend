@@ -1,7 +1,5 @@
 package com.fairpilot.core.auth;
 
-import com.fairpilot.core.common.BusinessException;
-import com.fairpilot.core.common.ErrorCode;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.User;
 import org.springframework.security.core.userdetails.UserDetails;
