@@ -30,8 +30,12 @@ public class SecurityConfig {
                 .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(
-                                "/api/auth/**",   // 로그인·회원가입
-                                "/api/exhibitions/*/public/**"  // 공개 조회
+                                "/api/auth/**",                      // 로그인·회원가입
+                                "/api/exhibitions",                  // 박람회 목록 (비로그인)
+                                "/api/exhibitions/*/booths",         // 부스 목록 (비로그인)
+                                "/api/exhibitions/*/booths/*",       // 부스 단건 (비로그인)
+                                "/api/exhibitions/*/sessions",       // 세션 목록 (비로그인)
+                                "/api/exhibitions/*"                 // 박람회 단건 (비로그인)
                         ).permitAll()
                         .anyRequest().authenticated()
                 )
