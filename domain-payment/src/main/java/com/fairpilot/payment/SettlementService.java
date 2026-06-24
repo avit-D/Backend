@@ -12,7 +12,9 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.LocalTime;
 import java.util.List;
+import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
@@ -21,21 +23,24 @@ public class SettlementService {
     private final SettlementRepository settlementRepository;
     private final PaymentRepository paymentRepository;
 
+    private static final BigDecimal FEE_RATE = new BigDecimal("0.032");
+
     /** 정산 생성 */
     @Transactional
     public Settlement create(Long exhibitionId, LocalDate periodStart, LocalDate periodEnd) {
+        var from = periodStart.atStartOfDay();
+        var to   = periodEnd.atTime(LocalTime.MAX);
 
-        // 온라인 매출 집계
-        BigDecimal onlineAmount = paymentRepository
-                .findByReservationIdAndStatusIn(exhibitionId,
-                        List.of(PaymentStatus.PAID))
-                .map(Payment::getAmount)
+        // 온라인 매출 합산 (기간 필터) — SUM이 null이면 ZERO
+        BigDecimal onlineAmount = Optional.ofNullable(
+                paymentRepository.sumOnlineAmount(
+                        exhibitionId, PaymentStatus.PAID, "ONSITE", from, to))
                 .orElse(BigDecimal.ZERO);
 
-        // ONSITE 현장결제 집계
-        BigDecimal onsiteAmount = paymentRepository
-                .findByPgTxId("ONSITE")
-                .map(Payment::getAmount)
+        // ONSITE 현장 매출 합산 (기간 필터) — SUM이 null이면 ZERO
+        BigDecimal onsiteAmount = Optional.ofNullable(
+                paymentRepository.sumOnsiteAmount(
+                        exhibitionId, PaymentStatus.PAID, "ONSITE", from, to))
                 .orElse(BigDecimal.ZERO);
 
         Settlement settlement = Settlement.builder()
@@ -44,7 +49,7 @@ public class SettlementService {
                 .periodEnd(periodEnd)
                 .onlineAmount(onlineAmount)
                 .onsiteAmount(onsiteAmount)
-                .feeAmount(onlineAmount.multiply(new BigDecimal("0.032")))
+                .feeAmount(onlineAmount.multiply(FEE_RATE))
                 .adRevenue(BigDecimal.ZERO)
                 .build();
 

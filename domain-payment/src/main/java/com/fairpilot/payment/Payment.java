@@ -23,6 +23,9 @@ public class Payment extends BaseEntity {
     @Column(nullable = false)
     private Long reservationId;
 
+    @Column
+    private Long exhibitionId;
+
     @Column(length = 40)
     private String pgProvider;
 
@@ -46,9 +49,10 @@ public class Payment extends BaseEntity {
     private LocalDateTime deletedAt;
 
     @Builder
-    public Payment(Long reservationId, String pgProvider, String pgTxId,
+    public Payment(Long reservationId, Long exhibitionId, String pgProvider, String pgTxId,
                    BigDecimal amount, BigDecimal feeAmount) {
         this.reservationId = reservationId;
+        this.exhibitionId = exhibitionId;
         this.pgProvider = pgProvider;
         this.pgTxId = pgTxId;
         this.amount = amount;

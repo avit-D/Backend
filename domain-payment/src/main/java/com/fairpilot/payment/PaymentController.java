@@ -1,8 +1,10 @@
 package com.fairpilot.payment;
 
 import com.fairpilot.core.common.ApiResponse;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 @Slf4j
@@ -32,9 +34,10 @@ public class PaymentController {
      * EXPO_ADMIN / STAFF 전용
      */
     @PostMapping("/onsite")
+    @PreAuthorize("hasAnyRole('EXPO_ADMIN', 'STAFF')")
     public ApiResponse<Void> onsite(
-            @RequestBody PortOneWebhookPayload payload) {
-        paymentService.handleOnsite(payload);
+            @RequestBody @Valid OnsitePaymentRequest req) {
+        paymentService.handleOnsite(req);
         return ApiResponse.ok(null);
     }
 }

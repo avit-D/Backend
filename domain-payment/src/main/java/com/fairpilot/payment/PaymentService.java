@@ -8,7 +8,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
-import java.util.List;
 
 @Slf4j
 @Service
@@ -19,33 +18,26 @@ public class PaymentService {
 
     /**
      * 포트원 webhook 멱등 처리
-     * 같은 pgTxId가 이미 있으면 무시 (중복 webhook 방어)
+     * PAID/FAILED: 중복 수신 시 무시
+     * CANCELLED: 기존 레코드 상태 업데이트 (멱등성 체크 제외)
      */
     @Transactional
     public void handleWebhook(PortOneWebhookPayload payload) {
         String pgTxId = payload.data().paymentId();
-        String type = payload.type();
+        String status = payload.data().status();
 
-        // 멱등성 체크 — 이미 처리된 webhook이면 무시
-        if (paymentRepository.findByPgTxId(pgTxId).isPresent()) {
-            log.info("중복 webhook 무시: pgTxId={}", pgTxId);
-            return;
-        }
-
-        // ONSITE 현장결제는 별도 처리
-        if ("ONSITE".equals(type)) {
-            handleOnsite(payload);
-            return;
-        }
-
-        // 포트원 결제 상태에 따라 처리
-        switch (payload.data().status()) {
+        switch (status) {
             case "PAID" -> {
+                // 중복 webhook 방어
+                if (paymentRepository.findByPgTxId(pgTxId).isPresent()) {
+                    log.info("중복 PAID webhook 무시: pgTxId={}", pgTxId);
+                    return;
+                }
                 Payment payment = Payment.builder()
                         .reservationId(extractReservationId(pgTxId))
                         .pgProvider("PORTONE_TOSS")
                         .pgTxId(pgTxId)
-                        .amount(BigDecimal.ZERO) // 포트원 검증 후 실금액 세팅
+                        .amount(BigDecimal.ZERO) // 포트원 API 검증 후 실금액 세팅
                         .feeAmount(BigDecimal.ZERO)
                         .build();
                 payment.markPaid();
@@ -53,6 +45,10 @@ public class PaymentService {
                 log.info("결제 완료 처리: pgTxId={}", pgTxId);
             }
             case "FAILED" -> {
+                if (paymentRepository.findByPgTxId(pgTxId).isPresent()) {
+                    log.info("중복 FAILED webhook 무시: pgTxId={}", pgTxId);
+                    return;
+                }
                 Payment payment = Payment.builder()
                         .reservationId(extractReservationId(pgTxId))
                         .pgProvider("PORTONE_TOSS")
@@ -65,31 +61,36 @@ public class PaymentService {
                 log.info("결제 실패 처리: pgTxId={}", pgTxId);
             }
             case "CANCELLED" -> {
-                paymentRepository.findByPgTxId(pgTxId).ifPresent(p -> {
+                // CANCELLED는 기존 레코드 업데이트 — 멱등성 체크 없이 진행
+                paymentRepository.findByPgTxId(pgTxId).ifPresentOrElse(p -> {
                     p.markCancelled();
                     paymentRepository.save(p);
-                });
-                log.info("결제 취소 처리: pgTxId={}", pgTxId);
+                    log.info("결제 취소 처리: pgTxId={}", pgTxId);
+                }, () -> log.warn("취소 대상 결제 없음: pgTxId={}", pgTxId));
             }
-            default -> log.warn("알 수 없는 결제 상태: {}", payload.data().status());
+            default -> log.warn("알 수 없는 결제 상태: {}", status);
         }
     }
 
-    /** ONSITE 현장결제 분리 처리 */
+    /** ONSITE 현장결제 처리 (/onsite 엔드포인트 전용) */
     @Transactional
-    public void handleOnsite(PortOneWebhookPayload payload) {
-        String pgTxId = payload.data().paymentId();
-
+    public void handleOnsite(OnsitePaymentRequest req) {
+        // 중복 등록 방어
+        if (paymentRepository.findByPgTxId(req.pgTxId()).isPresent()) {
+            log.info("중복 ONSITE 결제 무시: pgTxId={}", req.pgTxId());
+            return;
+        }
         Payment payment = Payment.builder()
-                .reservationId(extractReservationId(pgTxId))
+                .reservationId(req.reservationId())
+                .exhibitionId(req.exhibitionId())
                 .pgProvider("ONSITE")
-                .pgTxId(pgTxId)
-                .amount(BigDecimal.ZERO)
+                .pgTxId(req.pgTxId())
+                .amount(req.amount())
                 .feeAmount(BigDecimal.ZERO)
                 .build();
         payment.markPaid();
         paymentRepository.save(payment);
-        log.info("현장결제 처리: pgTxId={}", pgTxId);
+        log.info("현장결제 처리: pgTxId={}, exhibitionId={}", req.pgTxId(), req.exhibitionId());
     }
 
     /** pgTxId에서 reservationId 추출 (포트원 custom data 기반) */
