@@ -49,14 +49,16 @@ public class HallucinationGuard {
         // ① 선언 ID 교차 검증
         for (String rawId : declared) {
             String id = rawId.trim().toUpperCase();
-            if (boothRepository.existsById(id) && candidatePool.contains(id)) {
+            boolean isExistBooth = boothRepository.existsById(id);
+            boolean isCandiateBooth = candidatePool.contains(id);
+            if (isExistBooth && isCandiateBooth) {
                 verifiedIds.add(id);
             } else {
                 hallucinatedIds.add(rawId);
                 log.warn("[HallucinationGuard] 유령 ID: '{}' (DB존재={}, 후보풀포함={})",
                         rawId,
-                        boothRepository.existsById(id),
-                        candidatePool.contains(id));
+                        isExistBooth,
+                        isCandiateBooth);
             }
         }
 

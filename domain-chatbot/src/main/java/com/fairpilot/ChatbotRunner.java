@@ -125,7 +125,6 @@ public class ChatbotRunner {
         }
 
         private AskRequest buildRequest(Scenario scenario) throws Exception {
-            new AskRequest();
             var node = objectMapper.createObjectNode();
             node.put("question", scenario.question());
             if (scenario.candidateBoothIds() != null) {
