@@ -8,18 +8,12 @@ import lombok.NoArgsConstructor;
 import org.hibernate.annotations.SQLDelete;
 import org.hibernate.annotations.SQLRestriction;
 
-import java.time.LocalDateTime;
-
-/**
- * 예약 헤더(결제·정원 차감 단위). v2.4: movement_mode/group_size/reservation_source 추가,
- * ticket_qr_token 제거(참석자별 reservation_attendee 로 이동). Soft Delete 적용.
- */
 @Entity
 @Table(name = "reservation")
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-@SQLDelete(sql = "UPDATE reservation SET deleted_at = NOW() WHERE id = ?")
-@SQLRestriction("deleted_at IS NULL")
+@SQLDelete(sql = "UPDATE reservation SET is_deleted = 1 WHERE id = ?")
+@SQLRestriction("is_deleted = 0")
 public class Reservation {
 
     @Id
@@ -53,8 +47,8 @@ public class Reservation {
     @Column(name = "reservation_source", nullable = false, length = 16)
     private ReservationSource reservationSource;
 
-    @Column(name = "deleted_at")
-    private LocalDateTime deletedAt;
+    @Column(name = "is_deleted", nullable = false)
+    private boolean isDeleted = false;
 
     @Builder
     private Reservation(Long userId, Long exhibitionId, Long timeSlotId, Long ticketTypeId,
@@ -68,10 +62,13 @@ public class Reservation {
         this.groupSize = groupSize;
         this.status = status;
         this.reservationSource = reservationSource;
+        this.isDeleted = false;
     }
 
     public void markPaid()      { this.status = ReservationStatus.PAID; }
     public void markCancelled() { this.status = ReservationStatus.CANCELLED; }
     public void markCheckedIn() { this.status = ReservationStatus.CHECKED_IN; }
-    public void decreaseGroupSize(int by) { this.groupSize = Math.max(0, this.groupSize - by); }
+    public void decreaseGroupSize(int by) {
+        this.groupSize = Math.max(0, this.groupSize - by);
+    }
 }
