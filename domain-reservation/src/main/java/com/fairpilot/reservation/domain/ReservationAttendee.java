@@ -10,15 +10,12 @@ import org.hibernate.annotations.SQLRestriction;
 
 import java.time.LocalDateTime;
 
-/**
- * 참석자 — 입장·동선 추적의 기본 단위(v2.4). 모바일 티켓 QR은 여기에 발급한다.
- */
 @Entity
 @Table(name = "reservation_attendee")
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-@SQLDelete(sql = "UPDATE reservation_attendee SET deleted_at = NOW() WHERE id = ?")
-@SQLRestriction("deleted_at IS NULL")
+@SQLDelete(sql = "UPDATE reservation_attendee SET is_deleted = 1 WHERE id = ?")
+@SQLRestriction("is_deleted = 0")
 public class ReservationAttendee {
 
     @Id
@@ -60,8 +57,8 @@ public class ReservationAttendee {
     @Column(name = "checked_in_at")
     private LocalDateTime checkedInAt;
 
-    @Column(name = "deleted_at")
-    private LocalDateTime deletedAt;
+    @Column(name = "is_deleted", nullable = false)
+    private boolean isDeleted = false;
 
     @Builder
     private ReservationAttendee(Long reservationId, Long exhibitionId, Long linkedUserId,
@@ -77,11 +74,12 @@ public class ReservationAttendee {
         this.ticketQrToken = ticketQrToken;
         this.checkinStatus = CheckinStatus.NOT_CHECKED_IN;
         this.attendeeStatus = AttendeeStatus.ACTIVE;
+        this.isDeleted = false;
     }
 
     public void cancel() {
         this.attendeeStatus = AttendeeStatus.CANCELLED;
-        this.ticketQrToken = null; // QR 무효화
+        this.ticketQrToken = null;
     }
 
     public void checkIn() {
@@ -89,7 +87,6 @@ public class ReservationAttendee {
         this.checkedInAt = LocalDateTime.now();
     }
 
-    /** 참석자 정보 수정 — null 필드는 기존 값 유지. */
     public void update(String name, String phone, String email) {
         if (name  != null) this.name  = name;
         if (phone != null) this.phone = phone;

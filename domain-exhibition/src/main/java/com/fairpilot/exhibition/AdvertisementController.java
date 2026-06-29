@@ -17,21 +17,21 @@ public class AdvertisementController {
 
     /** 광고 슬롯 목록 조회 */
     @GetMapping("/slots")
-    public ApiResponse<List<AdSlot>> slots(
+    public ApiResponse<List<AdSlotResponse>> slots(
             @RequestParam(required = false) Long exhibitionId) {
         return ApiResponse.ok(advertisementService.findSlots(exhibitionId));
     }
 
     /** 광고 목록 조회 */
     @GetMapping
-    public ApiResponse<List<Advertisement>> list(@RequestParam Long adSlotId) {
+    public ApiResponse<List<AdvertisementResponse>> list(@RequestParam Long adSlotId) {
         return ApiResponse.ok(advertisementService.findAds(adSlotId));
     }
 
     /** 광고 생성 (PLATFORM_ADMIN / EXPO_ADMIN 전용) */
     @PostMapping
     @PreAuthorize("hasAnyRole('PLATFORM_ADMIN', 'EXPO_ADMIN')")
-    public ApiResponse<Advertisement> create(@Valid @RequestBody AdRequest req) {
+    public ApiResponse<AdvertisementResponse> create(@Valid @RequestBody AdRequest req) {
         return ApiResponse.ok(advertisementService.create(req));
     }
 

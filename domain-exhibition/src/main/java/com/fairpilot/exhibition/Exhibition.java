@@ -15,8 +15,8 @@ import java.time.LocalDate;
 @Table(name = "exhibition")
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-@SQLDelete(sql = "UPDATE exhibition SET deleted_at = NOW() WHERE id = ?")
-@SQLRestriction("deleted_at IS NULL")
+@SQLDelete(sql = "UPDATE exhibition SET is_deleted = 1 WHERE id = ?")
+@SQLRestriction("is_deleted = 0")
 public class Exhibition extends BaseEntity {
 
     @Id
@@ -51,8 +51,8 @@ public class Exhibition extends BaseEntity {
     @Column(nullable = false)
     private Long createdBy;
 
-    @Column
-    private java.time.LocalDateTime deletedAt;
+    @Column(nullable = false)
+    private boolean isDeleted = false;
 
     @Builder
     public Exhibition(String title, String slug, String venue, String address,
@@ -66,5 +66,6 @@ public class Exhibition extends BaseEntity {
         this.status = ExhibitionStatus.DRAFT;
         this.enforceStaffQualification = false;
         this.createdBy = createdBy;
+        this.isDeleted = false;
     }
 }

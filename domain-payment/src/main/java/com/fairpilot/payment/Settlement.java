@@ -6,6 +6,8 @@ import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import org.hibernate.annotations.SQLDelete;
+import org.hibernate.annotations.SQLRestriction;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -15,6 +17,8 @@ import java.time.LocalDateTime;
 @Table(name = "settlement")
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
+@SQLDelete(sql = "UPDATE settlement SET is_deleted = 1 WHERE id = ?")
+@SQLRestriction("is_deleted = 0")
 public class Settlement extends BaseEntity {
 
     @Id
@@ -55,8 +59,8 @@ public class Settlement extends BaseEntity {
     @Column
     private LocalDateTime paidOutAt;
 
-    @Column
-    private LocalDateTime deletedAt;
+    @Column(nullable = false)
+    private boolean isDeleted = false;
 
     @Builder
     public Settlement(Long exhibitionId, LocalDate periodStart, LocalDate periodEnd,
@@ -72,5 +76,6 @@ public class Settlement extends BaseEntity {
         this.adRevenue = adRevenue != null ? adRevenue : BigDecimal.ZERO;
         this.netPayout = this.grossAmount.subtract(this.feeAmount).add(this.adRevenue);
         this.status = SettlementStatus.PENDING;
+        this.isDeleted = false;
     }
 }

@@ -6,21 +6,22 @@ import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import org.hibernate.annotations.SQLDelete;
 import org.hibernate.annotations.SQLRestriction;
-
 
 @Entity
 @Table(name = "users")
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-@SQLRestriction("deleted_at IS NULL")
+@SQLDelete(sql = "UPDATE users SET is_deleted = 1 WHERE id = ?")
+@SQLRestriction("is_deleted = 0")
 public class User extends BaseEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(nullable = false, unique = true)
+    @Column(nullable = false)
     private String email;
 
     @Column(nullable = false)
@@ -36,8 +37,8 @@ public class User extends BaseEntity {
     @Column(nullable = false)
     private Role role;
 
-    @Column
-    private java.time.LocalDateTime deletedAt;
+    @Column(nullable = false)
+    private boolean isDeleted = false;
 
     @Builder
     public User(String email, String passwordHash, String name, String phone, Role role) {
@@ -46,5 +47,6 @@ public class User extends BaseEntity {
         this.name = name;
         this.phone = phone;
         this.role = role != null ? role : Role.VISITOR;
+        this.isDeleted = false;
     }
 }

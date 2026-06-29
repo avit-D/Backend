@@ -20,10 +20,10 @@ public class AuthService {
     private final JwtProvider jwtProvider;
     private final RefreshTokenService refreshTokenService;
 
-    /** 회원가입 (VISITOR만 가능) */
     @Transactional
     public void signUp(String email, String password, String name, String phone) {
-        if (userRepository.existsByEmail(email)) {
+        // is_deleted = 0 인 활성 유저만 중복 체크
+        if (userRepository.existsByEmailAndIsDeletedFalse(email)) {
             throw new BusinessException(ErrorCode.CONFLICT, "이미 사용 중인 이메일입니다.");
         }
         User user = User.builder()
@@ -37,9 +37,10 @@ public class AuthService {
     }
 
     /** 로그인 → AccessToken + RefreshToken 반환 */
+    /** 로그인 → AccessToken + RefreshToken 반환 */
     @Transactional(readOnly = true)
     public Map<String, String> login(String email, String password) {
-        User user = userRepository.findByEmail(email)
+        User user = userRepository.findByEmailAndIsDeletedFalse(email)
                 .orElseThrow(() -> new BusinessException(ErrorCode.UNAUTHORIZED,
                         "이메일 또는 비밀번호가 올바르지 않습니다."));
 

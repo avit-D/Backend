@@ -6,6 +6,8 @@ import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import org.hibernate.annotations.SQLDelete;
+import org.hibernate.annotations.SQLRestriction;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -14,6 +16,8 @@ import java.time.LocalDateTime;
 @Table(name = "payment")
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
+@SQLDelete(sql = "UPDATE payment SET is_deleted = 1 WHERE id = ?")
+@SQLRestriction("is_deleted = 0")
 public class Payment extends BaseEntity {
 
     @Id
@@ -45,8 +49,8 @@ public class Payment extends BaseEntity {
     @Column
     private LocalDateTime paidAt;
 
-    @Column
-    private LocalDateTime deletedAt;
+    @Column(nullable = false)
+    private boolean isDeleted = false;
 
     @Builder
     public Payment(Long reservationId, Long exhibitionId, String pgProvider, String pgTxId,
@@ -58,20 +62,18 @@ public class Payment extends BaseEntity {
         this.amount = amount;
         this.feeAmount = feeAmount != null ? feeAmount : BigDecimal.ZERO;
         this.status = PaymentStatus.READY;
+        this.isDeleted = false;
     }
 
-    /** 결제 완료 */
     public void markPaid() {
         this.status = PaymentStatus.PAID;
         this.paidAt = LocalDateTime.now();
     }
 
-    /** 결제 실패 */
     public void markFailed() {
         this.status = PaymentStatus.FAILED;
     }
 
-    /** 결제 취소/환불 */
     public void markCancelled() {
         this.status = PaymentStatus.CANCELLED;
     }
