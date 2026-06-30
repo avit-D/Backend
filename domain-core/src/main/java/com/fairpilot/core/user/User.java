@@ -24,8 +24,8 @@ public class User extends BaseEntity {
     @Column(nullable = false)
     private String email;
 
-    @Column(nullable = false)
-    private String passwordHash;
+    @Column(name = "password_hash")
+    private String passwordHash; // 소셜 로그인/초대 유저는 NULL 가능
 
     @Column(nullable = false, length = 100)
     private String name;
@@ -37,16 +37,32 @@ public class User extends BaseEntity {
     @Column(nullable = false)
     private Role role;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "social_provider", nullable = false)
+    private SocialProvider socialProvider;
+
+    @Column(name = "social_provider_id")
+    private String socialProviderId;
+
     @Column(nullable = false)
     private boolean isDeleted = false;
 
     @Builder
-    public User(String email, String passwordHash, String name, String phone, Role role) {
+    public User(String email, String passwordHash, String name, String phone, Role role,
+                SocialProvider socialProvider, String socialProviderId) {
         this.email = email;
         this.passwordHash = passwordHash;
         this.name = name;
         this.phone = phone;
         this.role = role != null ? role : Role.VISITOR;
+        this.socialProvider = socialProvider != null ? socialProvider : SocialProvider.NONE;
+        this.socialProviderId = socialProviderId;
         this.isDeleted = false;
+    }
+
+    /** 기존 이메일/비밀번호 계정에 소셜 로그인 계정을 연동 */
+    public void linkSocialAccount(SocialProvider provider, String providerId) {
+        this.socialProvider = provider;
+        this.socialProviderId = providerId;
     }
 }
