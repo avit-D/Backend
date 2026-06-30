@@ -9,6 +9,8 @@ import lombok.NoArgsConstructor;
 import org.hibernate.annotations.SQLDelete;
 import org.hibernate.annotations.SQLRestriction;
 
+import java.time.LocalDateTime;
+
 @Entity
 @Table(name = "users")
 @Getter
@@ -27,6 +29,12 @@ public class User extends BaseEntity {
     @Column(name = "password_hash")
     private String passwordHash; // 소셜 로그인/초대 유저는 NULL 가능
 
+    @Column(name = "invite_token")
+    private String inviteToken;
+
+    @Column(name = "invite_expires_at")
+    private LocalDateTime inviteExpiresAt;
+
     @Column(nullable = false, length = 100)
     private String name;
 
@@ -36,6 +44,10 @@ public class User extends BaseEntity {
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private Role role;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "account_status", nullable = false)
+    private AccountStatus accountStatus;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "social_provider", nullable = false)
@@ -48,13 +60,17 @@ public class User extends BaseEntity {
     private boolean isDeleted = false;
 
     @Builder
-    public User(String email, String passwordHash, String name, String phone, Role role,
+    public User(String email, String passwordHash, String inviteToken, LocalDateTime inviteExpiresAt,
+                String name, String phone, Role role, AccountStatus accountStatus,
                 SocialProvider socialProvider, String socialProviderId) {
         this.email = email;
         this.passwordHash = passwordHash;
+        this.inviteToken = inviteToken;
+        this.inviteExpiresAt = inviteExpiresAt;
         this.name = name;
         this.phone = phone;
         this.role = role != null ? role : Role.VISITOR;
+        this.accountStatus = accountStatus != null ? accountStatus : AccountStatus.ACTIVE;
         this.socialProvider = socialProvider != null ? socialProvider : SocialProvider.NONE;
         this.socialProviderId = socialProviderId;
         this.isDeleted = false;
@@ -64,5 +80,13 @@ public class User extends BaseEntity {
     public void linkSocialAccount(SocialProvider provider, String providerId) {
         this.socialProvider = provider;
         this.socialProviderId = providerId;
+    }
+
+    /** 관리자 초대 수락 → 비밀번호 설정 + 계정 활성화 */
+    public void acceptInvite(String passwordHash) {
+        this.passwordHash = passwordHash;
+        this.accountStatus = AccountStatus.ACTIVE;
+        this.inviteToken = null;
+        this.inviteExpiresAt = null;
     }
 }
