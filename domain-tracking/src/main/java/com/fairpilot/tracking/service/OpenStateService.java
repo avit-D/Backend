@@ -5,9 +5,11 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.data.redis.core.script.DefaultRedisScript;
 import org.springframework.stereotype.Service;
 
 import java.time.Duration;
+import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 
@@ -27,6 +29,19 @@ public class OpenStateService {
     private static final String OPEN = "open:";
     private static final String OPEN_INDEX = "open_index";
     private static final Duration OPEN_TTL = Duration.ofHours(3);
+
+    /** ZRANGEBYSCORE + ZREM 을 Lua로 원자화 — 멀티 인스턴스 중복 처리 방지 */
+    @SuppressWarnings("unchecked")
+    private static final DefaultRedisScript<List<String>> POP_EXPIRED_SCRIPT;
+    static {
+        POP_EXPIRED_SCRIPT = new DefaultRedisScript<>();
+        POP_EXPIRED_SCRIPT.setScriptText(
+            "local m = redis.call('ZRANGEBYSCORE', KEYS[1], 0, ARGV[1], 'LIMIT', 0, ARGV[2])\n" +
+            "if #m > 0 then redis.call('ZREM', KEYS[1], unpack(m)) end\n" +
+            "return m"
+        );
+        POP_EXPIRED_SCRIPT.setResultType((Class<List<String>>) (Class<?>) List.class);
+    }
 
     public record OpenState(Long exhibitionId, Long attendeeId, ScanPointType scanPointType,
                             Long scanPointId, long entryEpoch, int headCount, Long dwellId,
@@ -60,11 +75,13 @@ public class OpenStateService {
 
     /** 60분 스위퍼: entry epoch <= threshold 인 "{exhId}:{attendeeId}" 목록을 원자적으로 꺼낸다. */
     public Set<String> popExpired(long thresholdEpoch, long maxCount) {
-        Set<String> expired = redis.opsForZSet().rangeByScore(OPEN_INDEX, 0, thresholdEpoch, 0, maxCount);
-        if (expired != null && !expired.isEmpty()) {
-            redis.opsForZSet().remove(OPEN_INDEX, expired.toArray());
-        }
-        return expired;
+        List<String> result = redis.execute(
+            POP_EXPIRED_SCRIPT,
+            List.of(OPEN_INDEX),
+            String.valueOf(thresholdEpoch),
+            String.valueOf(maxCount)
+        );
+        return result == null ? Set.of() : Set.copyOf(result);
     }
 
     private String openKey(Long exhibitionId, Long attendeeId) {

@@ -14,6 +14,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -154,10 +155,11 @@ public class CheckinService {
 
     @Transactional
     public CheckinResultResponse walkIn(WalkInRequest req, Long staffUserId) {
+        MovementMode mode = req.movementMode() != null ? req.movementMode() : MovementMode.INDIVIDUAL;
         Reservation reservation = Reservation.builder()
                 .userId(staffUserId)
                 .exhibitionId(req.exhibitionId())
-                .movementMode(MovementMode.INDIVIDUAL)
+                .movementMode(mode)
                 .groupSize(req.groupSize())
                 .status(ReservationStatus.PAID)
                 .reservationSource(ReservationSource.ONSITE_MANUAL)
@@ -184,8 +186,8 @@ public class CheckinService {
                 req.exhibitionId(), reservation.getId(), leader.getId(),
                 nametag.getId(), CheckinMethod.WALK_IN, staffUserId, req.memo()));
 
-        // 워크인은 항상 INDIVIDUAL(head_count=1)
-        createGateEntry(req.exhibitionId(), leader.getId(), nametag.getId(), staffUserId, 1);
+        int headCount = mode == MovementMode.GROUP ? req.groupSize() : 1;
+        createGateEntry(req.exhibitionId(), leader.getId(), nametag.getId(), staffUserId, headCount);
 
         return toResult(log, leader, nametag, true);
     }
@@ -298,7 +300,7 @@ public class CheckinService {
                 .scannedByUserId(staffUserId)
                 .manual(true)
                 .autoExit(false)
-                .scannedAt(null)
+                .scannedAt(LocalDateTime.now())
                 .build();
         visitLogRepo.save(gate);
     }
