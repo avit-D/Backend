@@ -24,16 +24,15 @@ import com.fairpilot.tracking.repository.VisitDwellRepository;
 import com.fairpilot.tracking.repository.VisitLogRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.redisson.api.RLock;
-import org.redisson.api.RedissonClient;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionTemplate;
 
+import java.time.Duration;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
-import java.util.concurrent.TimeUnit;
 
 /**
  * 부스/세션 셀프 스캔 처리 엔진 (개발자 4번, v2.4).
@@ -53,8 +52,10 @@ public class ScanProcessingService {
     private final OpenStateService openStateService;
     private final CongestionCounterService counterService;
     private final CongestionMessageRouter congestionRouter;
-    private final RedissonClient redissonClient;
+    private final StringRedisTemplate redis;
     private final TransactionTemplate txTemplate;
+
+    private static final Duration SCAN_LOCK_TTL = Duration.ofSeconds(5);
 
     @Value("${fairpilot.stats.debounce-seconds:30}") private int debounceSeconds;
     @Value("${fairpilot.stats.dwell-cap-seconds:3600}") private int capSeconds;
@@ -68,17 +69,16 @@ public class ScanProcessingService {
         }
         Long attendeeId = tag.getAttendeeId();
 
-        RLock lock = redissonClient.getLock("lock:scan:attendee:" + attendeeId);
-        boolean locked = false;
+        // attendee 단위 분산 락 — Redisson 제외(v2.6) 결정에 따라 SET NX EX 패턴 사용
+        String lockKey = "lock:scan:attendee:" + attendeeId;
+        Boolean acquired = redis.opsForValue().setIfAbsent(lockKey, "1", SCAN_LOCK_TTL);
+        if (!Boolean.TRUE.equals(acquired)) {
+            throw new BusinessException(ErrorCode.CONFLICT, "스캔 처리가 지연되고 있습니다.");
+        }
         try {
-            locked = lock.tryLock(2, 5, TimeUnit.SECONDS);
-            if (!locked) throw new BusinessException(ErrorCode.CONFLICT, "스캔 처리가 지연되고 있습니다.");
             return txTemplate.execute(status -> process(req, tag, attendeeId, scannedByUserId));
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            throw new BusinessException(ErrorCode.CONFLICT, "스캔 처리가 중단되었습니다.");
         } finally {
-            if (locked && lock.isHeldByCurrentThread()) lock.unlock();
+            redis.delete(lockKey);
         }
     }
 
