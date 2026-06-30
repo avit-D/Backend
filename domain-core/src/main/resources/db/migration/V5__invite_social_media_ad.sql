@@ -113,3 +113,28 @@ CREATE INDEX idx_ad_type ON advertisement (ad_type);
 --     → account_status = 'ACTIVE', invite_token = NULL, invite_expires_at = NULL
 --  5. invite_expires_at 경과 시 토큰 만료 처리 (배치 또는 로그인 시점 검증)
 -- ============================================================
+
+
+-- ============================================================
+-- CHECK 제약 추가 (팀장 코드리뷰 반영)
+-- social_provider/social_provider_id, ad_type/google_ad_unit_id
+-- 정합성 보장
+--
+-- (기존 ALTER TABLE users / ALTER TABLE advertisement 블록 뒤)
+-- ============================================================
+
+ALTER TABLE users
+    ADD CONSTRAINT chk_user_social_consistency
+    CHECK (
+        (social_provider = 'NONE' AND social_provider_id IS NULL)
+        OR
+        (social_provider = 'GOOGLE' AND social_provider_id IS NOT NULL)
+    );
+
+ALTER TABLE advertisement
+    ADD CONSTRAINT chk_ad_type_consistency
+    CHECK (
+        (ad_type = 'INTERNAL' AND google_ad_unit_id IS NULL)
+        OR
+        (ad_type = 'GOOGLE' AND google_ad_unit_id IS NOT NULL)
+    );
