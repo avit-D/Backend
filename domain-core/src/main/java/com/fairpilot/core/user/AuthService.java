@@ -37,12 +37,17 @@ public class AuthService {
     }
 
     /** 로그인 → AccessToken + RefreshToken 반환 */
-    /** 로그인 → AccessToken + RefreshToken 반환 */
     @Transactional(readOnly = true)
     public Map<String, String> login(String email, String password) {
         User user = userRepository.findByEmailAndIsDeletedFalse(email)
                 .orElseThrow(() -> new BusinessException(ErrorCode.UNAUTHORIZED,
                         "이메일 또는 비밀번호가 올바르지 않습니다."));
+
+        // 소셜 로그인/초대 미완료 유저는 passwordHash가 NULL일 수 있음 — NPE 방어
+        if (user.getPasswordHash() == null) {
+            throw new BusinessException(ErrorCode.UNAUTHORIZED,
+                    "소셜 로그인 계정입니다. 구글 로그인을 이용해주세요.");
+        }
 
         if (!passwordEncoder.matches(password, user.getPasswordHash())) {
             throw new BusinessException(ErrorCode.UNAUTHORIZED,
