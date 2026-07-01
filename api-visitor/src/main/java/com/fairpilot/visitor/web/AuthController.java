@@ -2,8 +2,10 @@ package com.fairpilot.visitor.web;
 
 import com.fairpilot.core.common.ApiResponse;
 import com.fairpilot.core.user.AuthService;
+import com.fairpilot.core.user.GoogleLoginRequest;
 import com.fairpilot.core.user.LoginRequest;
 import com.fairpilot.core.user.SignUpRequest;
+import com.fairpilot.core.user.SocialLoginService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
@@ -16,6 +18,7 @@ import java.util.Map;
 public class AuthController {
 
     private final AuthService authService;
+    private final SocialLoginService socialLoginService;
 
     /** 회원가입 (VISITOR만 가능) */
     @PostMapping("/signup")
@@ -28,6 +31,12 @@ public class AuthController {
     @PostMapping("/login")
     public ApiResponse<Map<String, String>> login(@Valid @RequestBody LoginRequest req) {
         return ApiResponse.ok(authService.login(req.email(), req.password()));
+    }
+
+    /** 구글 소셜 로그인 → AccessToken + RefreshToken 반환 */
+    @PostMapping("/google")
+    public ApiResponse<Map<String, String>> googleLogin(@Valid @RequestBody GoogleLoginRequest req) {
+        return ApiResponse.ok(socialLoginService.loginWithGoogle(req.idToken()));
     }
 
     /** Access Token 재발급 */
