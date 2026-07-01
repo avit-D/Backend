@@ -27,31 +27,45 @@ public class SecurityConfig {
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
                 .csrf(AbstractHttpConfigurer::disable)
-                .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .sessionManagement(s -> s
+                        .sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(
-                                "/api/auth/**",                              // 로그인·회원가입
-                                "/api/exhibitions",                          // 박람회 목록 (비로그인)
-                                "/api/exhibitions/*",                        // 박람회 단건 (비로그인)
-                                "/api/exhibitions/*/booths",                 // 부스 목록 (비로그인)
-                                "/api/exhibitions/*/booths/*",               // 부스 단건 (비로그인)
-                                "/api/exhibitions/*/sessions",               // 세션 목록 (비로그인)
-                                "/api/exhibitions/*/sessions/*",             // 세션 단건 (비로그인)
-                                "/api/exhibitions/*/ticket-types",           // 티켓타입 목록 (비로그인)
-                                "/api/payments/webhook",                     // 포트원 webhook (인증 불필요)
-                                "/api/advertisements/slots",                 // 광고 슬롯 목록 (비로그인)
-                                "/api/advertisements",                       // 광고 목록 (비로그인)
-                                "/api/advertisements/*/impression",          // 노출 카운트 (비로그인)
-                                "/api/advertisements/*/click"                // 클릭 카운트 (비로그인)
+                                // ── 인증 ──────────────────────────────
+                                "/api/auth/**",
+
+                                // ── 초대 수락 (JWT 없음) ───────────────
+                                "/api/invite/accept",
+
+                                // ── 박람회 공개 조회 (비로그인) ──────────
+                                "/api/exhibitions",
+                                "/api/exhibitions/*",
+                                "/api/exhibitions/*/booths",
+                                "/api/exhibitions/*/booths/*",
+                                "/api/exhibitions/*/sessions",
+                                "/api/exhibitions/*/sessions/*",
+                                "/api/exhibitions/*/ticket-types",
+
+                                // ── Webhook (외부 서버 호출, JWT 없음) ──
+                                "/api/payments/webhook",
+                                "/api/payments/webhook/toss",
+
+                                // ── 광고 공개 (비로그인) ─────────────────
+                                "/api/advertisements/slots",
+                                "/api/advertisements",
+                                "/api/advertisements/*/impression",
+                                "/api/advertisements/*/click"
                         ).permitAll()
                         .requestMatchers(
-                                "/api/exhibitions/*/reservations",           // 예약 현황
-                                "/api/exhibitions/*/reservations/export"     // 예약 엑셀
+                                "/api/exhibitions/*/reservations",
+                                "/api/exhibitions/*/reservations/export"
                         ).hasAnyRole("EXPO_ADMIN", "ACCOUNTANT", "PLATFORM_ADMIN")
                         .anyRequest().authenticated()
                 )
-                .addFilterBefore(new JwtFilter(jwtProvider),
-                        UsernamePasswordAuthenticationFilter.class);
+                .addFilterBefore(
+                        new JwtFilter(jwtProvider),
+                        UsernamePasswordAuthenticationFilter.class
+                );
 
         return http.build();
     }
