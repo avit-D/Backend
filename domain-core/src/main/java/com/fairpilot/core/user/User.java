@@ -89,4 +89,9 @@ public class User extends BaseEntity {
         this.inviteToken = null;
         this.inviteExpiresAt = null;
     }
+    /** 초대 토큰 재발급 (INVITED 상태에서 재초대 시) */
+    public void reissueInviteToken(String token, LocalDateTime expiresAt) {
+        this.inviteToken = token;
+        this.inviteExpiresAt = expiresAt;
+    }
 }

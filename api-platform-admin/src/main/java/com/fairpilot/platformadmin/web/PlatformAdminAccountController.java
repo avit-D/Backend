@@ -64,7 +64,7 @@ public class PlatformAdminAccountController {
             throw new BusinessException(ErrorCode.INVALID_INPUT,
                     "발급 가능한 역할: " + ISSUABLE_ROLES);
         }
-        if (userRepository.existsByEmail(req.email())) {
+        if (userRepository.existsByEmailAndIsDeletedFalse(req.email())) {
             throw new BusinessException(ErrorCode.CONFLICT, "이미 사용 중인 이메일입니다.");
         }
         User user = User.builder()
