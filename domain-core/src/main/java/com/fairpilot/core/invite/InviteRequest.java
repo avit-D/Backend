@@ -15,8 +15,5 @@ public record InviteRequest(
         String name,
 
         @NotNull(message = "역할은 필수입니다.")
-        Role role,
-
-        @NotNull(message = "exhibitionId는 필수입니다.")  // ← 추가
-        Long exhibitionId
+        Role role
 ) {}

@@ -8,8 +8,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -33,22 +31,14 @@ public class InviteService {
     @Value("${invite.expiry-hours:72}")
     private int expiryHours;
 
-    /** PLATFORM_ADMIN 초대 불가 역할 */
     private static final List<Role> PLATFORM_ADMIN_UNINVITABLE =
             List.of(Role.PLATFORM_ADMIN, Role.VISITOR);
 
-    /** EXPO_ADMIN 초대 가능 역할 — STAFF/EXHIBITOR/ACCOUNTANT만 */
     private static final List<Role> EXPO_ADMIN_INVITABLE =
             List.of(Role.STAFF, Role.EXHIBITOR, Role.ACCOUNTANT);
 
-    /**
-     * 관리자 초대 발급
-     * - PLATFORM_ADMIN: EXPO_ADMIN/STAFF/EXHIBITOR/ACCOUNTANT 초대 가능
-     * - EXPO_ADMIN: STAFF/EXHIBITOR/ACCOUNTANT만 초대 가능 (EXPO_ADMIN 초대 불가)
-     */
     @Transactional
     public void invite(InviteRequest req, Role callerRole) {
-        // 역할별 초대 가능 범위 검증
         if (callerRole == Role.PLATFORM_ADMIN) {
             if (PLATFORM_ADMIN_UNINVITABLE.contains(req.role())) {
                 throw new BusinessException(ErrorCode.INVALID_INPUT,
@@ -90,9 +80,6 @@ public class InviteService {
         sendInviteMail(req.email(), req.name(), token);
     }
 
-    /**
-     * 초대 수락 — 비밀번호 설정 + 계정 활성화
-     */
     @Transactional
     public void accept(AcceptInviteRequest req) {
         User user = userRepository.findByInviteToken(req.token())
