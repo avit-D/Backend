@@ -52,6 +52,16 @@ public class Payment extends BaseEntity {
     @Column(nullable = false)
     private boolean isDeleted = false;
 
+    // ── webhook 재시도 ─────────────────────────────────────
+    @Column(nullable = false)
+    private int webhookRetryCount = 0;
+
+    @Column
+    private LocalDateTime webhookRetryAt;
+
+    @Column(length = 500)
+    private String webhookLastError;
+
     @Builder
     public Payment(Long reservationId, Long exhibitionId, String pgProvider, String pgTxId,
                    BigDecimal amount, BigDecimal feeAmount) {
@@ -63,11 +73,14 @@ public class Payment extends BaseEntity {
         this.feeAmount = feeAmount != null ? feeAmount : BigDecimal.ZERO;
         this.status = PaymentStatus.READY;
         this.isDeleted = false;
+        this.webhookRetryCount = 0;
     }
 
     public void markPaid() {
         this.status = PaymentStatus.PAID;
         this.paidAt = LocalDateTime.now();
+        this.webhookRetryAt = null;
+        this.webhookLastError = null;
     }
 
     public void markFailed() {
@@ -76,5 +89,33 @@ public class Payment extends BaseEntity {
 
     public void markCancelled() {
         this.status = PaymentStatus.CANCELLED;
+    }
+
+    public void updatePgTxId(String pgTxId) {
+        this.pgTxId = pgTxId;
+    }
+
+    public void updateAmount(BigDecimal amount) {
+        this.amount = amount;
+    }
+
+    /**
+     * webhook 재시도 예약
+     * 지수 백오프: 1분 → 5분 → 15분 → 30분 → 60분
+     * 5회 초과 시 더 이상 재시도하지 않음
+     */
+    public void scheduleRetry(String errorMessage) {
+        this.webhookRetryCount++;
+        this.webhookLastError = errorMessage;
+
+        // 지수 백오프 간격 (분)
+        int[] backoffMinutes = {1, 5, 15, 30, 60};
+        int idx = Math.min(this.webhookRetryCount - 1, backoffMinutes.length - 1);
+        this.webhookRetryAt = LocalDateTime.now().plusMinutes(backoffMinutes[idx]);
+    }
+
+    /** 최대 재시도 횟수 초과 여부 */
+    public boolean isRetryExhausted() {
+        return this.webhookRetryCount >= 5;
     }
 }
