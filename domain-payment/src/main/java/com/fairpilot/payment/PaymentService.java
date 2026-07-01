@@ -35,7 +35,7 @@ public class PaymentService {
                 }
                 Payment payment = Payment.builder()
                         .reservationId(extractReservationId(pgTxId))
-                        .pgProvider("PORTONE_TOSS")
+                        .pgProvider("PORTONE")
                         .pgTxId(pgTxId)
                         .amount(BigDecimal.ZERO) // 포트원 API 검증 후 실금액 세팅
                         .feeAmount(BigDecimal.ZERO)
@@ -51,7 +51,7 @@ public class PaymentService {
                 }
                 Payment payment = Payment.builder()
                         .reservationId(extractReservationId(pgTxId))
-                        .pgProvider("PORTONE_TOSS")
+                        .pgProvider("PORTONE")
                         .pgTxId(pgTxId)
                         .amount(BigDecimal.ZERO)
                         .feeAmount(BigDecimal.ZERO)

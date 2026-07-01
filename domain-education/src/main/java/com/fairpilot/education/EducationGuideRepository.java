@@ -14,8 +14,9 @@ public interface EducationGuideRepository extends JpaRepository<EducationGuide, 
     /** 필수 가이드 수 조회 */
     @Query("SELECT COUNT(g) FROM EducationGuide g " +
             "WHERE g.targetRole = :role AND g.isRequired = true " +
-            "AND g.status = 'ACTIVE' " +
+            "AND g.status = :status " +
             "AND (g.exhibitionId = :exhibitionId OR g.exhibitionId IS NULL)")
     long countRequired(@Param("role") TargetRole role,
+                       @Param("status") GuideStatus status,
                        @Param("exhibitionId") Long exhibitionId);
 }

@@ -14,8 +14,9 @@ public interface EducationCompletionRepository extends JpaRepository<EducationCo
     @Query("SELECT COUNT(c) FROM EducationCompletion c " +
             "JOIN EducationGuide g ON g.id = c.guideId " +
             "WHERE c.userId = :userId AND c.passed = true " +
-            "AND g.isRequired = true AND g.status = 'ACTIVE' " +
+            "AND g.isRequired = true AND g.status = :status " +
             "AND (g.exhibitionId = :exhibitionId OR g.exhibitionId IS NULL)")
     long countCompleted(@Param("userId") Long userId,
+                        @Param("status") GuideStatus status,
                         @Param("exhibitionId") Long exhibitionId);
 }

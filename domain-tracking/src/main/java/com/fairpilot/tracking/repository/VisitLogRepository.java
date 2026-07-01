@@ -11,4 +11,7 @@ public interface VisitLogRepository extends JpaRepository<VisitLog, Long> {
     List<VisitLog> findByExhibitionIdOrderByAttendeeIdAscScannedAtAsc(Long exhibitionId);
 
     List<VisitLog> findByExhibitionId(Long exhibitionId);
+
+    /** 사후 리포트: attendee 본인 동선 이력, 시간순 */
+    List<VisitLog> findByAttendeeIdOrderByScannedAtAsc(Long attendeeId);
 }

@@ -34,12 +34,11 @@ public class EducationService {
     public void markVideoCompleted(Long guideId, Long userId) {
         EducationCompletion completion = completionRepository
                 .findByGuideIdAndUserId(guideId, userId)
-                .orElseGet(() -> completionRepository.save(
-                        EducationCompletion.builder()
-                                .guideId(guideId)
-                                .userId(userId)
-                                .videoCompleted(false)
-                                .build()));
+                .orElseGet(() -> EducationCompletion.builder()
+                        .guideId(guideId)
+                        .userId(userId)
+                        .videoCompleted(false)
+                        .build());
         completion.markVideoCompleted();
         completionRepository.save(completion);
     }
@@ -65,8 +64,8 @@ public class EducationService {
      */
     @Transactional(readOnly = true)
     public boolean isQualified(Long userId, Long exhibitionId, TargetRole role) {
-        long required = guideRepository.countRequired(role, exhibitionId);
-        long completed = completionRepository.countCompleted(userId, exhibitionId);
+        long required = guideRepository.countRequired(role, GuideStatus.ACTIVE, exhibitionId);
+        long completed = completionRepository.countCompleted(userId, GuideStatus.ACTIVE, exhibitionId);
         return required > 0 && completed >= required;
     }
 }

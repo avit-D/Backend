@@ -1,5 +1,6 @@
 package com.fairpilot.tracking.dto;
 
+import com.fairpilot.reservation.domain.MovementMode;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -11,5 +12,6 @@ public record WalkInRequest(
         @NotBlank String leaderPhone,
         @Min(1) int groupSize,
         @NotBlank String nametagToken,
-        String memo
+        String memo,
+        MovementMode movementMode   // null이면 INDIVIDUAL로 처리
 ) {}
