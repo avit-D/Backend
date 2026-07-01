@@ -11,6 +11,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
 import java.util.Base64;
 
 @Slf4j
@@ -25,12 +26,26 @@ public class PaymentController {
     private String tossSecretKey;
 
     /**
+     * 결제 요청 발급
+     * 프론트엔드가 reservationId + pgProvider + amount 를 전송
+     * 서버는 orderId 생성 + READY Payment 저장 후 반환
+     * VISITOR 전용
+     */
+    @PostMapping("/initiate")
+    @PreAuthorize("hasRole('VISITOR')")
+    public ApiResponse<PaymentInitiateResponse> initiate(
+            @RequestBody @Valid PaymentInitiateRequest req) {
+        return ApiResponse.ok(paymentService.initiate(req));
+    }
+
+    /**
      * 포트원 V2 webhook 수신
+     * SecurityConfig에서 permitAll 처리 — JWT 불필요
      */
     @PostMapping("/webhook")
     public ApiResponse<Void> webhook(
             @RequestBody PortOneWebhookPayload payload) {
-        log.info("webhook 수신: type={}, paymentId={}",
+        log.info("포트원 webhook 수신: type={}, paymentId={}",
                 payload.type(), payload.data().paymentId());
         paymentService.handleWebhook(payload);
         return ApiResponse.ok(null);
@@ -38,8 +53,8 @@ public class PaymentController {
 
     /**
      * 토스페이먼츠 webhook 수신
-     * Authorization: Basic {Base64(secret:)} 헤더 검증 필수
-     * 검증 실패 시 401 반환 (위변조 방어)
+     * SecurityConfig에서 permitAll 처리 — JWT 불필요
+     * Authorization: Basic {Base64(secret:)} 헤더 검증으로 위변조 방어
      */
     @PostMapping("/webhook/toss")
     public ApiResponse<Void> tossWebhook(
@@ -68,17 +83,26 @@ public class PaymentController {
 
     /**
      * 토스 Authorization 헤더 검증
-     * 토스는 Basic {Base64(secret:)} 형식으로 헤더를 보냄
-     * secret 뒤에 콜론(:)을 붙인 뒤 Base64 인코딩
+     * [보안] MessageDigest.isEqual() 상수 시간 비교 → 타이밍 어택 방지
+     * String.equals()는 첫 불일치 문자에서 즉시 반환하므로
+     * 응답 시간 측정으로 secret key를 역추산할 수 있음
      */
     private void verifyTossAuthorization(String authorization) {
         if (authorization == null || !authorization.startsWith("Basic ")) {
-            throw new BusinessException(ErrorCode.UNAUTHORIZED, "토스 Authorization 헤더가 없습니다.");
+            throw new BusinessException(ErrorCode.UNAUTHORIZED,
+                    "토스 Authorization 헤더가 없습니다.");
         }
         String expected = "Basic " + Base64.getEncoder()
                 .encodeToString((tossSecretKey + ":").getBytes(StandardCharsets.UTF_8));
-        if (!expected.equals(authorization)) {
-            throw new BusinessException(ErrorCode.UNAUTHORIZED, "토스 Authorization 헤더가 유효하지 않습니다.");
+
+        boolean matched = MessageDigest.isEqual(
+                expected.getBytes(StandardCharsets.UTF_8),
+                authorization.getBytes(StandardCharsets.UTF_8)
+        );
+
+        if (!matched) {
+            throw new BusinessException(ErrorCode.UNAUTHORIZED,
+                    "토스 Authorization 헤더가 유효하지 않습니다.");
         }
     }
 }

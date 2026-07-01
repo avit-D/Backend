@@ -77,4 +77,14 @@ public class Payment extends BaseEntity {
     public void markCancelled() {
         this.status = PaymentStatus.CANCELLED;
     }
+    /** 토스 webhook DONE 수신 시 orderId → paymentKey 로 갱신 */
+    public void updatePgTxId(String pgTxId) {
+        this.pgTxId = pgTxId;
+    }
+
+    /** 토스 webhook DONE 수신 시 실제 결제금액으로 갱신 */
+    public void updateAmount(BigDecimal amount) {
+        this.amount = amount;
+    }
+
 }
