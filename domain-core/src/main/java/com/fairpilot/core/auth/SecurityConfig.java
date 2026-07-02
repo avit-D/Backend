@@ -31,10 +31,13 @@ public class SecurityConfig {
                         .sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(
-                                // ── 인증 ──────────────────────────────────
+                                // ── 인증 ──────────────────────────────
                                 "/api/auth/**",
 
-                                // ── 박람회 공개 조회 (비로그인) ────────────
+                                // ── 초대 수락 (JWT 없음) ───────────────
+                                "/api/invite/accept",
+
+                                // ── 박람회 공개 조회 (비로그인) ──────────
                                 "/api/exhibitions",
                                 "/api/exhibitions/*",
                                 "/api/exhibitions/*/booths",
@@ -43,11 +46,11 @@ public class SecurityConfig {
                                 "/api/exhibitions/*/sessions/*",
                                 "/api/exhibitions/*/ticket-types",
 
-                                // ── Webhook (외부 서버 호출, JWT 없음) ─────
-                                "/api/payments/webhook",           // 포트원 V2
-                                "/api/payments/webhook/toss",      // 토스페이먼츠 ← 추가
+                                // ── Webhook (외부 서버 호출, JWT 없음) ──
+                                "/api/payments/webhook",
+                                "/api/payments/webhook/toss",
 
-                                // ── 광고 공개 (비로그인) ───────────────────
+                                // ── 광고 공개 (비로그인) ─────────────────
                                 "/api/advertisements/slots",
                                 "/api/advertisements",
                                 "/api/advertisements/*/impression",
