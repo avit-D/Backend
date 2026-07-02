@@ -12,7 +12,7 @@ dependencies {
     api project(':domain-core')
     implementation project(':domain-reservation')
     implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
-    implementation 'org.mybatis.spring.boot:mybatis-spring-boot-starter:3.0.3'
+    api 'org.mybatis.spring.boot:mybatis-spring-boot-starter:3.0.3'
     runtimeOnly 'com.mysql:mysql-connector-j'
     implementation 'tools.jackson.core:jackson-databind'
 }
