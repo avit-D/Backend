@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.fairpilot.tracking.stats.repository.StatMapper">
+
+    <!--
+        상위 구간 체류 평균 공식: SUM(sum_dwell_sec) / SUM(dwell_count)
+        avg_dwell_sec AVG()는 평균의 평균 오류를 유발하므로 사용하지 않는다.
+    -->
+
+    <select id="dailyDwellAvg"
+            resultType="com.fairpilot.tracking.stats.dto.StatDtos$DwellAvgResult">
+        SELECT
+            SUM(sum_dwell_sec)  AS sumDwellSec,
+            SUM(dwell_count)    AS dwellCount,
+            CASE
+                WHEN SUM(dwell_count) = 0 THEN 0
+                ELSE SUM(sum_dwell_sec) / SUM(dwell_count)
+            END                 AS avgDwellSec
+        FROM stat_visit_point
+        WHERE exhibition_id = #{exhibitionId}
+          AND stat_date     = #{statDate}
+    </select>
+
+    <select id="totalDwellAvg"
+            resultType="com.fairpilot.tracking.stats.dto.StatDtos$DwellAvgResult">
+        SELECT
+            SUM(sum_dwell_sec)  AS sumDwellSec,
+            SUM(dwell_count)    AS dwellCount,
+            CASE
+                WHEN SUM(dwell_count) = 0 THEN 0
+                ELSE SUM(sum_dwell_sec) / SUM(dwell_count)
+            END                 AS avgDwellSec
+        FROM stat_visit_point
+        WHERE exhibition_id = #{exhibitionId}
+    </select>
+
+</mapper>
