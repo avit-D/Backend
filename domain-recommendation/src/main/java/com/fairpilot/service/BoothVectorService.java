@@ -71,12 +71,12 @@ public class BoothVectorService {
         return new Document(
                 String.valueOf(booth.id()),
                 String.format("[%s] %s - %s",
-                        booth.category(), booth.name(), booth.description()),
+                        booth.tags(), booth.name(), booth.description()),
                 Map.of(
                         "boothId",  booth.id(),
                         "posX",     booth.posX(),
                         "posY",     booth.posY(),
-                        "category", booth.category()
+                        "tags", booth.tags()
                 )
         );
     }
