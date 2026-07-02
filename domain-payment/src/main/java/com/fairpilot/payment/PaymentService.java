@@ -8,6 +8,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
 
@@ -20,8 +21,8 @@ public class PaymentService {
 
     /**
      * 결제 요청 발급
-     * orderId = {reservationId}_{UUID} 형식으로 생성
-     * READY Payment 레코드 저장 후 orderId + amount 반환
+     * initiate() 시 webhookRetryAt = 10분 후로 설정
+     * → webhook 미도달 시 스케줄러가 10분 후 자동 재시도
      */
     @Transactional
     public PaymentInitiateResponse initiate(PaymentInitiateRequest req) {
@@ -50,16 +51,17 @@ public class PaymentService {
                 .feeAmount(BigDecimal.ZERO)
                 .build();
 
+        // webhook 미도달 대비: 10분 후 재시도 예약
+        // webhook이 정상 수신되면 markPaid()에서 webhookRetryAt = null 처리됨
+        payment.initWebhookRetry();
+
         paymentRepository.save(payment);
-        log.info("결제 요청 발급: orderId={}, pgProvider={}, amount={}",
-                orderId, req.pgProvider(), req.amount());
+        log.info("결제 요청 발급: orderId={}, pgProvider={}, amount={}, webhookRetryAt={}",
+                orderId, req.pgProvider(), req.amount(), payment.getWebhookRetryAt());
 
         return new PaymentInitiateResponse(orderId, req.amount());
     }
 
-    /**
-     * 포트원 webhook 멱등 처리
-     */
     @Transactional
     public void handleWebhook(PortOneWebhookPayload payload) {
         String pgTxId = payload.data().paymentId();
@@ -109,15 +111,6 @@ public class PaymentService {
         }
     }
 
-    /**
-     * 토스페이먼츠 webhook 멱등 처리
-     *
-     * [흐름]
-     * 1. paymentKey로 중복 체크 (멱등)
-     * 2. orderId로 READY 레코드 조회
-     * 3. READY 있으면 금액 검증 후 pgTxId를 paymentKey로 교체
-     * 4. READY 없으면 신규 생성
-     */
     @Transactional
     public void handleTossWebhook(TossWebhookPayload payload) {
         String paymentKey    = payload.data().paymentKey();
@@ -127,7 +120,6 @@ public class PaymentService {
 
         switch (status) {
             case "DONE" -> {
-                // 1. paymentKey 중복 체크 (멱등)
                 if (paymentRepository.findByPgTxId(paymentKey).isPresent()) {
                     log.info("중복 DONE webhook 무시: paymentKey={}", paymentKey);
                     return;
@@ -135,12 +127,10 @@ public class PaymentService {
 
                 Long reservationId = extractReservationId(orderId);
 
-                // 2. READY 레코드 조회
                 Payment payment = paymentRepository
                         .findByReservationIdAndStatusIn(
                                 reservationId, List.of(PaymentStatus.READY))
                         .map(p -> {
-                            // 3. 금액 불일치 감지 (위변조 방어)
                             if (webhookAmount != null &&
                                     p.getAmount().compareTo(webhookAmount) != 0) {
                                 log.warn("금액 불일치 감지! 저장={}, webhook={}, orderId={}",
@@ -148,13 +138,10 @@ public class PaymentService {
                                 throw new BusinessException(ErrorCode.INVALID_INPUT,
                                         "결제 금액이 일치하지 않습니다. 위변조 의심");
                             }
-                            // pgTxId: orderId → paymentKey 교체
-                            // paymentKey 중복은 1번에서 이미 걸러졌으므로 UNIQUE 위반 없음
                             p.updatePgTxId(paymentKey);
                             return p;
                         })
                         .orElseGet(() -> {
-                            // initiate() 없이 바로 webhook 온 케이스
                             log.warn("READY 레코드 없음, 신규 생성: orderId={}", orderId);
                             return Payment.builder()
                                     .reservationId(reservationId)
@@ -196,7 +183,6 @@ public class PaymentService {
         }
     }
 
-    /** ONSITE 현장결제 처리 */
     @Transactional
     public void handleOnsite(OnsitePaymentRequest req) {
         if (paymentRepository.findByPgTxId(req.pgTxId()).isPresent()) {
@@ -216,7 +202,6 @@ public class PaymentService {
         log.info("현장결제 처리: pgTxId={}, exhibitionId={}", req.pgTxId(), req.exhibitionId());
     }
 
-    /** ID 문자열에서 reservationId 추출 — {reservationId}_{uuid} 형식 */
     private Long extractReservationId(String id) {
         try {
             return Long.parseLong(id.split("_")[0]);

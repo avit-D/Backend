@@ -76,19 +76,31 @@ public class Payment extends BaseEntity {
         this.webhookRetryCount = 0;
     }
 
+    /**
+     * initiate() 직후 호출
+     * webhook 미도달 대비 10분 후 첫 재시도 예약
+     * webhook 정상 수신 시 markPaid()에서 null 처리됨
+     */
+    public void initWebhookRetry() {
+        this.webhookRetryAt = LocalDateTime.now().plusMinutes(10);
+    }
+
     public void markPaid() {
         this.status = PaymentStatus.PAID;
         this.paidAt = LocalDateTime.now();
+        // webhook 정상 수신 → 재시도 불필요
         this.webhookRetryAt = null;
         this.webhookLastError = null;
     }
 
     public void markFailed() {
         this.status = PaymentStatus.FAILED;
+        this.webhookRetryAt = null;
     }
 
     public void markCancelled() {
         this.status = PaymentStatus.CANCELLED;
+        this.webhookRetryAt = null;
     }
 
     /** 토스 webhook DONE 수신 시 orderId → paymentKey 로 갱신 */
@@ -104,7 +116,6 @@ public class Payment extends BaseEntity {
     /**
      * webhook 재시도 예약
      * 지수 백오프: 1분 → 5분 → 15분 → 30분 → 60분
-     * 5회 초과 시 더 이상 재시도하지 않음
      */
     public void scheduleRetry(String errorMessage) {
         this.webhookRetryCount++;
