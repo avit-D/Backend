@@ -1,6 +1,5 @@
 package com.fairpilot.visitor.web;
 
-import com.fairpilot.core.auth.JwtProvider;
 import com.fairpilot.core.common.ApiResponse;
 import com.fairpilot.core.media.*;
 import jakarta.validation.Valid;
@@ -8,6 +7,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -19,12 +19,10 @@ import java.util.List;
 public class MediaController {
 
     private final MediaAssetService mediaAssetService;
-    private final JwtProvider jwtProvider;
 
     /**
      * 파일 업로드
-     * EXPO_ADMIN / PLATFORM_ADMIN / STAFF 전용
-     * multipart/form-data 형식
+     * SecurityContextHolder에서 userId 추출 — JWT 재파싱 불필요
      */
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @ResponseStatus(HttpStatus.CREATED)
@@ -32,10 +30,8 @@ public class MediaController {
     public ApiResponse<MediaAssetResponse> upload(
             @RequestPart("file") MultipartFile file,
             @RequestPart("request") @Valid MediaUploadRequest req,
-            @RequestHeader("Authorization") String authorization) {
-
-        Long uploadedBy = jwtProvider.extractUserId(authorization.replace("Bearer ", ""));
-        return ApiResponse.ok(mediaAssetService.upload(file, req, uploadedBy));
+            @AuthenticationPrincipal Long userId) {
+        return ApiResponse.ok(mediaAssetService.upload(file, req, userId));
     }
 
     /**
@@ -50,7 +46,6 @@ public class MediaController {
 
     /**
      * 미디어 삭제
-     * EXPO_ADMIN / PLATFORM_ADMIN 전용
      */
     @DeleteMapping("/{mediaId}")
     @PreAuthorize("hasAnyRole('EXPO_ADMIN', 'PLATFORM_ADMIN')")
