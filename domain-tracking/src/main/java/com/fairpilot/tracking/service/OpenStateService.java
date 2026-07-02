@@ -1,7 +1,7 @@
 package com.fairpilot.tracking.service;
 
 import com.fairpilot.tracking.domain.ScanPointType;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.core.StringRedisTemplate;

@@ -2,7 +2,7 @@ package com.fairpilot.tracking.congestion.service;
 
 import com.fairpilot.core.config.RedisMessageRouterPort;
 import com.fairpilot.tracking.congestion.dto.CongestionEvent;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.connection.Message;
