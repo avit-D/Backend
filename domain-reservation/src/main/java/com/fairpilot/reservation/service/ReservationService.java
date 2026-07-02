@@ -83,6 +83,7 @@ public class ReservationService {
                 .forEach(a -> { if (a.getAttendeeStatus() == AttendeeStatus.ACTIVE) a.cancel(); });
         seatHoldService.confirmHold(reservationId);
         r.markCancelled();
+        reservationRepository.save(r);   // status=CANCELLED DB 반영
         reservationRepository.delete(r); // Soft Delete
     }
 
@@ -106,6 +107,12 @@ public class ReservationService {
         a.cancel();
         restoreSeat(r.getTimeSlotId(), 1);
         r.decreaseGroupSize(1);
+        // 마지막 참석자 취소 시 예약 전체 자동 취소
+        if (r.getGroupSize() == 0) {
+            r.markCancelled();
+            reservationRepository.save(r);
+            reservationRepository.delete(r);
+        }
     }
 
     /** 스케줄러: 미결제 Hold 만료 → group_size 반납. */
@@ -116,10 +123,19 @@ public class ReservationService {
                 restoreSeat(r.getTimeSlotId(), r.getGroupSize());
                 attendeeRepository.findByReservationId(reservationId).forEach(ReservationAttendee::cancel);
                 r.markCancelled();
+                reservationRepository.save(r);   // status=CANCELLED DB 반영
                 reservationRepository.delete(r);
                 log.info("hold expired -> released reservation={} seats={}", reservationId, r.getGroupSize());
             }
         });
+    }
+
+    /** 예약 리포트 조회(§6.13): 본인 예약만 접근 가능. */
+    @Transactional(readOnly = true)
+    public Reservation getReport(Long reservationId, Long userId) {
+        Reservation r = getReservation(reservationId);
+        if (!r.getUserId().equals(userId)) throw new BusinessException(ErrorCode.FORBIDDEN);
+        return r;
     }
 
     // ---- helpers ----
@@ -139,9 +155,9 @@ public class ReservationService {
         List<ReservationAttendee> list = new ArrayList<>();
         boolean group = req.movementMode() == MovementMode.GROUP;
         for (ReserveRequest.AttendeeRequest ar : req.attendees()) {
-            boolean leader = group ? ar.isGroupLeader() : false;
+            boolean leader = group && ar.isGroupLeader();
             // GROUP은 대표만 QR, INDIVIDUAL은 각자 QR
-            String qr = (group ? leader : true) ? newToken() : null;
+            String qr = (!group || leader) ? newToken() : null;
             list.add(ReservationAttendee.builder()
                     .reservationId(r.getId()).exhibitionId(r.getExhibitionId())
                     .name(ar.name()).phone(ar.phone()).email(ar.email())

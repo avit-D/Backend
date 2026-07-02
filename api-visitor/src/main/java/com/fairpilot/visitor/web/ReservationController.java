@@ -16,7 +16,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 /**
- * 예약 동시성 API (개발자 4번, v2.4). 인증/테넌트는 2번 모듈, 여기서는 X-User-Id 로 대체.
+ * 예약 동시성 API (개발자 4번, v2.4).
  */
 @RestController
 @RequestMapping("/api/reservations")
@@ -58,10 +58,21 @@ public class ReservationController {
         return ApiResponse.ok(null);
     }
 
-    /** 결제 webhook(2번/PG) 훅: 임시점유 확정 + PAID. */
+    /**
+     * 결제 완료 확정: 임시점유 → PAID.
+     * TODO: PaymentService에서 직접 ReservationService를 주입하여 HTTP 노출 제거 필요.
+     */
     @PostMapping("/{id}/confirm-paid")
     public ApiResponse<Void> confirmPaid(@PathVariable Long id) {
         reservationService.confirmPaid(id);
         return ApiResponse.ok(null);
+    }
+
+    /** 예약 리포트 조회(§6.13): 본인 예약만 접근 가능. */
+    @GetMapping("/{id}/report")
+    public ApiResponse<ReservationResponse> getReport(@RequestHeader("X-User-Id") Long userId,
+                                                      @PathVariable Long id) {
+        Reservation r = reservationService.getReport(id, userId);
+        return ApiResponse.ok(ReservationResponse.of(r, attendeeRepository.findByReservationId(id)));
     }
 }
