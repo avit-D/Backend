@@ -17,6 +17,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
+import java.time.ZoneId;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -34,6 +35,8 @@ public class StatsBatchService {
     private final StatVisitPointRepository statVisitPointRepository;
     private final StatCongestionHourlyRepository statCongestionHourlyRepository;
 
+    private static final ZoneId KST = ZoneId.of("Asia/Seoul");
+
     private record PointHourKey(ScanPointType type, Long pointId, LocalDate date, byte hour) {}
     private record HourKey(LocalDate date, byte hour) {}
 
@@ -50,13 +53,15 @@ public class StatsBatchService {
         Map<PointHourKey, List<VisitLog>> entryByKey = entries.stream()
                 .collect(Collectors.groupingBy(l -> new PointHourKey(
                         l.getScanPointType(), l.getScanPointId(),
-                        l.getScannedAt().toLocalDate(), (byte) l.getScannedAt().getHour())));
+                        l.getScannedAt().atZone(KST).toLocalDate(),
+                        (byte) l.getScannedAt().atZone(KST).getHour())));
 
         Map<PointHourKey, List<VisitDwell>> dwellByKey = dwells.stream()
                 .filter(d -> d.getExitAt() != null && d.getScanPointType() != ScanPointType.GATE)
                 .collect(Collectors.groupingBy(d -> new PointHourKey(
                         d.getScanPointType(), d.getScanPointId(),
-                        d.getEntryAt().toLocalDate(), (byte) d.getEntryAt().getHour())));
+                        d.getEntryAt().atZone(KST).toLocalDate(),
+                        (byte) d.getEntryAt().atZone(KST).getHour())));
 
         Set<PointHourKey> allKeys = new HashSet<>();
         allKeys.addAll(entryByKey.keySet());
@@ -92,7 +97,8 @@ public class StatsBatchService {
 
         Map<HourKey, Integer> congestionByHour = new HashMap<>();
         for (VisitLog l : allEntries) {
-            HourKey hk = new HourKey(l.getScannedAt().toLocalDate(), (byte) l.getScannedAt().getHour());
+            HourKey hk = new HourKey(l.getScannedAt().atZone(KST).toLocalDate(),
+                    (byte) l.getScannedAt().atZone(KST).getHour());
             congestionByHour.merge(hk, l.getHeadCount(), Integer::sum);
         }
 

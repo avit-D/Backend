@@ -7,4 +7,6 @@ import java.util.List;
 public interface SessionRepository extends JpaRepository<Session, Long> {
 
     List<Session> findAllByExhibitionId(Long exhibitionId);
+
+    List<Session> findAllByHostExhibitorId(Long hostExhibitorId);
 }

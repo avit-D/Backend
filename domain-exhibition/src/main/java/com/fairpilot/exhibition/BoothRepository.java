@@ -7,4 +7,6 @@ import java.util.List;
 public interface BoothRepository extends JpaRepository<Booth, Long> {
 
     List<Booth> findAllByExhibitionId(Long exhibitionId);
+
+    List<Booth> findAllByExhibitorId(Long exhibitorId);
 }
