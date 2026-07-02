@@ -76,6 +76,7 @@ public class BoothVectorService {
                         "boothId",  booth.id(),
                         "posX",     booth.posX(),
                         "posY",     booth.posY(),
+                        "floor",    booth.floor(),
                         "tags", booth.tags()
                 )
         );

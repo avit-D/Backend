@@ -6,6 +6,7 @@ public record RouteItem(
         String name,
         int posX,
         int posY,
+        int floor,
         String congestionLevel,
         String reason
 ) {}

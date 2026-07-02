@@ -38,7 +38,7 @@ public class RecommendationService {
                 
                 위 정보를 바탕으로 다음 조건을 고려하여 최적 방문 순서를 추천해주세요:
                 1. 유저 관심사와 부스 카테고리 일치도 (가장 중요)
-                2. 이동 거리 최소화 (X/Y 좌표 기반 인접 순서)
+                2. 이동 거리 최소화 (같은 층 우선, X/Y 좌표 기반 인접 순서)
                 3. 혼잡도가 낮은 부스 우선 배치
                 
                 반드시 아래 JSON 형식으로만 응답하세요:
@@ -87,8 +87,8 @@ public class RecommendationService {
         // 3. LLM 컨텍스트 구성
         String boothContext = candidates.stream()
                 .map(b -> String.format(
-                        "부스ID=%d, 이름=%s, 태그=%s, 위치=(X:%d,Y:%d), 혼잡도=%s",
-                        b.id(), b.name(), b.tags(), b.posX(), b.posY(), b.congestionLevel()
+                        "부스ID=%d, 이름=%s, 태그=%s, 위치=(X:%d,Y:%d), 층=%d, 혼잡도=%s",
+                        b.id(), b.name(), b.tags(), b.posX(), b.posY(), b.floor(), b.congestionLevel()
                 ))
                 .collect(Collectors.joining("\n"));
 
@@ -128,6 +128,7 @@ public class RecommendationService {
                         booth.name(),
                         booth.posX(),
                         booth.posY(),
+                        booth.floor(),
                         booth.congestionLevel(),
                         item.get("reason").asText()
                 ));
