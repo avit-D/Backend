@@ -9,6 +9,12 @@ bootJar { enabled = false }
 jar { enabled = true }
 
 dependencies {
-    implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
-    runtimeOnly 'com.mysql:mysql-connector-j'
+
+    // Spring AI - Ollama (Chat + Embedding)
+    implementation platform("org.springframework.ai:spring-ai-bom:2.0.0")
+    implementation 'org.springframework.ai:spring-ai-starter-model-ollama'
+    implementation 'org.springframework.ai:spring-ai-vector-store'
+
+    //ObjectMapper, JsonNode
+    implementation 'tools.jackson.core:jackson-databind'
 }
