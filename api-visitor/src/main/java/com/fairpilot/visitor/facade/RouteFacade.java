@@ -9,6 +9,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
+import java.util.Map;
 
 @Component
 @RequiredArgsConstructor
@@ -19,6 +20,7 @@ public class RouteFacade {
     private final CongestionService congestionService;
 
     public RouteRecommendResponse recommend(Long exhibitionId, List<String> interests) {
+        Map<Long, String> congestionMap = congestionService.getBoothCongestionMap(exhibitionId);
         List<BoothInfo> allBooths = boothService.findAll(exhibitionId).stream().map(booth -> {
             return new BoothInfo(
                     booth.getId(),
@@ -27,7 +29,8 @@ public class RouteFacade {
                     booth.getTags(),
                     booth.getPosX(),
                     booth.getPosY(),
-                    "원활" //TODO("CongestionService 연동 필요")
+                    booth.getFloor(),
+                    congestionMap.getOrDefault(booth.getId(), "LOW")
             );
         }).toList();
         return recommendationService.recommend(exhibitionId, interests, allBooths);

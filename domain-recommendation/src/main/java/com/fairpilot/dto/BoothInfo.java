@@ -7,5 +7,6 @@ public record BoothInfo(
         String tags,
         Integer posX,
         Integer posY,
+        Integer floor,
         String congestionLevel  // "여유" | "보통" | "혼잡"
 ) {}
