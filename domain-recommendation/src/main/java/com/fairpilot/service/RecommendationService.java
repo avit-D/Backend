@@ -87,8 +87,8 @@ public class RecommendationService {
         // 3. LLM 컨텍스트 구성
         String boothContext = candidates.stream()
                 .map(b -> String.format(
-                        "부스ID=%d, 이름=%s, 카테고리=%s, 위치=(X:%d,Y:%d), 혼잡도=%s",
-                        b.id(), b.name(), b.category(), b.posX(), b.posY(), b.congestionLevel()
+                        "부스ID=%d, 이름=%s, 태그=%s, 위치=(X:%d,Y:%d), 혼잡도=%s",
+                        b.id(), b.name(), b.tags(), b.posX(), b.posY(), b.congestionLevel()
                 ))
                 .collect(Collectors.joining("\n"));
 

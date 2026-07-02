@@ -14,7 +14,9 @@ dependencies {
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 
     implementation project(':domain-core')
+    implementation project(':domain-exhibition')
     implementation project(':domain-reservation')
     implementation project(':domain-tracking')
     implementation project(':domain-chatbot')
+    implementation project(':domain-recommendation')
 }
