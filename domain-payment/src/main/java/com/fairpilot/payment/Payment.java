@@ -1,0 +1,132 @@
+package com.fairpilot.payment;
+
+import com.fairpilot.core.common.BaseEntity;
+import jakarta.persistence.*;
+import lombok.AccessLevel;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import org.hibernate.annotations.SQLDelete;
+import org.hibernate.annotations.SQLRestriction;
+
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
+
+@Entity
+@Table(name = "payment")
+@Getter
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
+@SQLDelete(sql = "UPDATE payment SET is_deleted = 1 WHERE id = ?")
+@SQLRestriction("is_deleted = 0")
+public class Payment extends BaseEntity {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    @Column(nullable = false)
+    private Long reservationId;
+
+    @Column
+    private Long exhibitionId;
+
+    @Column(length = 40)
+    private String pgProvider;
+
+    @Column(length = 120, unique = true)
+    private String pgTxId;
+
+    @Column(nullable = false, precision = 12, scale = 2)
+    private BigDecimal amount;
+
+    @Column(nullable = false, precision = 12, scale = 2)
+    private BigDecimal feeAmount;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private PaymentStatus status;
+
+    @Column
+    private LocalDateTime paidAt;
+
+    @Column(nullable = false)
+    private boolean isDeleted = false;
+
+    // ── webhook 재시도 ─────────────────────────────────────
+    @Column(nullable = false)
+    private int webhookRetryCount = 0;
+
+    @Column
+    private LocalDateTime webhookRetryAt;
+
+    @Column(length = 500)
+    private String webhookLastError;
+
+    @Builder
+    public Payment(Long reservationId, Long exhibitionId, String pgProvider, String pgTxId,
+                   BigDecimal amount, BigDecimal feeAmount) {
+        this.reservationId = reservationId;
+        this.exhibitionId = exhibitionId;
+        this.pgProvider = pgProvider;
+        this.pgTxId = pgTxId;
+        this.amount = amount;
+        this.feeAmount = feeAmount != null ? feeAmount : BigDecimal.ZERO;
+        this.status = PaymentStatus.READY;
+        this.isDeleted = false;
+        this.webhookRetryCount = 0;
+    }
+
+    /**
+     * initiate() 직후 호출
+     * webhook 미도달 대비 10분 후 첫 재시도 예약
+     * webhook 정상 수신 시 markPaid()에서 null 처리됨
+     */
+    public void initWebhookRetry() {
+        this.webhookRetryAt = LocalDateTime.now().plusMinutes(10);
+    }
+
+    public void markPaid() {
+        this.status = PaymentStatus.PAID;
+        this.paidAt = LocalDateTime.now();
+        // webhook 정상 수신 → 재시도 불필요
+        this.webhookRetryAt = null;
+        this.webhookLastError = null;
+    }
+
+    public void markFailed() {
+        this.status = PaymentStatus.FAILED;
+        this.webhookRetryAt = null;
+    }
+
+    public void markCancelled() {
+        this.status = PaymentStatus.CANCELLED;
+        this.webhookRetryAt = null;
+    }
+
+    /** 토스 webhook DONE 수신 시 orderId → paymentKey 로 갱신 */
+    public void updatePgTxId(String pgTxId) {
+        this.pgTxId = pgTxId;
+    }
+
+    /** 토스 webhook DONE 수신 시 실제 결제금액으로 갱신 */
+    public void updateAmount(BigDecimal amount) {
+        this.amount = amount;
+    }
+
+    /**
+     * webhook 재시도 예약
+     * 지수 백오프: 1분 → 5분 → 15분 → 30분 → 60분
+     */
+    public void scheduleRetry(String errorMessage) {
+        this.webhookRetryCount++;
+        this.webhookLastError = errorMessage;
+        int[] backoffMinutes = {1, 5, 15, 30, 60};
+        int idx = Math.min(this.webhookRetryCount - 1, backoffMinutes.length - 1);
+        this.webhookRetryAt = LocalDateTime.now().plusMinutes(backoffMinutes[idx]);
+    }
+
+    /** 최대 재시도 횟수 초과 여부 */
+    public boolean isRetryExhausted() {
+        return this.webhookRetryCount >= 5;
+    }
+}
