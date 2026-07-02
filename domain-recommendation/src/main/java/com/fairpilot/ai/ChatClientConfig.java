@@ -4,7 +4,7 @@ import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
-@Configuration
+@Configuration("recommendChatClientConfig")
 public class ChatClientConfig {
 
     private static final String SYSTEM_PROMPT = """
@@ -14,7 +14,7 @@ public class ChatClientConfig {
             반드시 요청된 JSON 형식으로만 응답하세요. 다른 설명 없이 JSON만 출력하세요.
             """;
 
-    @Bean
+    @Bean("recommendClient")
     public ChatClient chatClient(ChatClient.Builder builder) {
         return builder
                 .defaultSystem(SYSTEM_PROMPT)

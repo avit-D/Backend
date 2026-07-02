@@ -35,10 +35,10 @@ public class Booth extends BaseEntity {
     @Column(length = 500)
     private String tags;
 
-    @Column
+    @Column(name = "pos_x")
     private Integer posX;
 
-    @Column
+    @Column(name = "pos_y")
     private Integer posY;
 
     @Column

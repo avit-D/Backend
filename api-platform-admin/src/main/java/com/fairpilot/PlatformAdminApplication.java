@@ -1,4 +1,4 @@
-package com.fairpilot.exhibitor;
+package com.fairpilot;
 
 import org.apache.ibatis.annotations.Mapper;
 import org.mybatis.spring.annotation.MapperScan;
@@ -11,8 +11,8 @@ import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
 @MapperScan(value = "com.fairpilot.tracking.stats.repository", annotationClass = Mapper.class)
 @EnableJpaRepositories(basePackages = "com.fairpilot")
 @EntityScan(basePackages = "com.fairpilot")
-public class ExhibitorApplication {
+public class PlatformAdminApplication {
     public static void main(String[] args) {
-        SpringApplication.run(ExhibitorApplication.class, args);
+        SpringApplication.run(PlatformAdminApplication.class, args);
     }
 }

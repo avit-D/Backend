@@ -15,10 +15,10 @@ import org.springframework.context.annotation.Configuration;
  *   OpenAI    → OpenAiChatModel
  *   Anthropic → AnthropicChatModel
  */
-@Configuration
+@Configuration("chatbotChatClientConfig")
 public class ChatClientConfig {
 
-    @Bean
+    @Bean("chatbotClient")
     public ChatClient chatClient(OllamaChatModel ollamaChatModel) {
         return ChatClient.builder(ollamaChatModel).build();
     }

@@ -24,3 +24,24 @@ dependencies {
     // AWS S3
     api 'software.amazon.awssdk:s3:2.25.60'
 }
+
+// 서버 실행 전 로컬 환경 점검: ./gradlew preflight
+// (MySQL 실행 → 계정 인증 → DB 존재 → Flyway 테이블 → Redis 순서로 점검, 실패 시 한글 가이드 출력)
+tasks.register('preflight', Test) {
+    group = 'verification'
+    description = '서버 실행 전 로컬 환경(MySQL·Redis·마이그레이션) 점검'
+    testClassesDirs = sourceSets.test.output.classesDirs
+    classpath = sourceSets.test.runtimeClasspath
+    useJUnitPlatform { includeTags 'preflight' }
+    outputs.upToDateWhen { false }
+    testLogging {
+        events 'passed', 'failed'
+        exceptionFormat 'full'
+        showStandardStreams = true
+    }
+}
+
+// preflight 테스트는 일반 test/build 에서 제외 (로컬 환경 없는 CI·팀원 빌드가 깨지지 않도록)
+tasks.named('test') {
+    useJUnitPlatform { excludeTags 'preflight' }
+}

@@ -11,6 +11,10 @@ import org.springframework.context.annotation.Bean;
 
 import java.util.List;
 
+/**
+ * 동선 추천 로컬 데모 러너 (Ollama 필요).
+ * src/main에 있으면 api-visitor 기동 시 컴포넌트 스캔에 잡혀 매번 실행되므로 test 소스로 이동함.
+ */
 @SpringBootApplication
 public class Main {
 
@@ -50,14 +54,14 @@ public class Main {
 
     private List<BoothInfo> mockBooths() {
         return List.of(
-                new BoothInfo(1L, "AI 스타트업 존",     "최신 AI 기술 및 스타트업 데모",    "AI",      2, 3, "여유"),
-                new BoothInfo(2L, "헬스케어 이노베이션", "디지털 헬스케어 솔루션 전시",      "헬스케어",  3, 3, "보통"),
-                new BoothInfo(3L, "푸드테크 체험관",     "식품 기술 및 스마트 팜 체험",      "푸드테크",  3, 5, "혼잡"),
-                new BoothInfo(4L, "핀테크 라운지",      "블록체인 및 디지털 금융 서비스",    "핀테크",    1, 2, "여유"),
-                new BoothInfo(5L, "에듀테크 부스",      "AI 기반 교육 플랫폼 소개",         "에듀테크",  4, 2, "보통"),
-                new BoothInfo(6L, "메타버스 존",        "VR/AR 기반 메타버스 체험",         "AI",       5, 4, "혼잡"),
-                new BoothInfo(7L, "바이오 헬스 존",     "바이오 기술 및 신약 개발 전시",     "헬스케어",  2, 5, "여유"),
-                new BoothInfo(8L, "스마트시티 부스",    "IoT 및 스마트시티 인프라 솔루션",   "IT인프라",  1, 4, "보통")
+                new BoothInfo(1L, "AI 스타트업 존",     "최신 AI 기술 및 스타트업 데모",    "AI",      2, 3, 1, "여유"),
+                new BoothInfo(2L, "헬스케어 이노베이션", "디지털 헬스케어 솔루션 전시",      "헬스케어",  3, 3, 1, "보통"),
+                new BoothInfo(3L, "푸드테크 체험관",     "식품 기술 및 스마트 팜 체험",      "푸드테크",  3, 5, 1, "혼잡"),
+                new BoothInfo(4L, "핀테크 라운지",      "블록체인 및 디지털 금융 서비스",    "핀테크",    1, 2, 2, "여유"),
+                new BoothInfo(5L, "에듀테크 부스",      "AI 기반 교육 플랫폼 소개",         "에듀테크",  4, 2, 2, "보통"),
+                new BoothInfo(6L, "메타버스 존",        "VR/AR 기반 메타버스 체험",         "AI",       5, 4, 2, "혼잡"),
+                new BoothInfo(7L, "바이오 헬스 존",     "바이오 기술 및 신약 개발 전시",     "헬스케어",  2, 5, 3, "여유"),
+                new BoothInfo(8L, "스마트시티 부스",    "IoT 및 스마트시티 인프라 솔루션",   "IT인프라",  1, 4, 3, "보통")
         );
     }
 }

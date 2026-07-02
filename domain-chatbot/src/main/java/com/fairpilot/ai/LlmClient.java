@@ -6,6 +6,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.prompt.Prompt;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Component;
 import com.fairpilot.dto.AssistantDto.*;
 
@@ -25,6 +26,7 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class LlmClient {
 
+    @Qualifier("chatbotClient")
     private final ChatClient chatClient;
     private final ObjectMapper objectMapper;
     private final OllamaProperties ollamaProperties;
